@@ -1,0 +1,37 @@
+@import com.example.Page
+@import gg.jte.Content
+
+@param page: Page
+@param content: Content
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @if(page.description != "")
+        <meta name="description" content="${page.description}">
+    @endif
+    <title>${page.title}</title>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+    <script>
+        window.tailwind = {
+            onLoad: function() {
+                document.body.removeAttribute('x-cloak');
+            }
+        };
+        // Fallback in case onLoad doesn't fire for some reason
+        window.addEventListener('load', function() {
+            document.body.removeAttribute('x-cloak');
+        });
+    </script>
+    <script src="/webjars/tailwindcss__browser/dist/index.global.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center" x-cloak>
+    <div class="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-md mx-4 sm:mx-auto">
+        <h1 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center text-gray-800">${page.title}</h1>
+        ${content}
+    </div>
+</body>
+</html>
