@@ -124,11 +124,13 @@ class LoginServer {
 
     @Bean
     fun userDetailsService(passwordEncoder: PasswordEncoder): UserDetailsService {
-        val user = User.withUsername("test@example.com")
-            .password(passwordEncoder.encode("password"))
-            .roles("USER")
-            .build()
-        return InMemoryUserDetailsManager(user)
+        val userBuilder = User.builder().password(passwordEncoder.encode("pw")).roles("USER")
+
+        val james = userBuilder.username("james").build()
+        val josh = userBuilder.username("josh").build()
+        val rob = userBuilder.username("rob").build()
+
+        return InMemoryUserDetailsManager(james, josh, rob)
     }
 
     @Bean
