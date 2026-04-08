@@ -27,7 +27,7 @@ dependencies {
     implementation("gg.jte:jte-runtime:3.2.3")
 
     runtimeOnly("org.webjars:webjars-locator-lite:1.1.0")
-    runtimeOnly("org.webjars.npm:tailwindcss__browser:4.1.18")
+    runtimeOnly("org.webjars.npm:tailwindcss__browser:4.2.1")
 
     compileOnly("gg.jte:jte-kotlin:3.2.3")
 
