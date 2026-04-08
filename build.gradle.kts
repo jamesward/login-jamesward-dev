@@ -26,7 +26,7 @@ dependencies {
     implementation("gg.jte:jte-spring-boot-starter-4:3.2.3")
     implementation("gg.jte:jte-runtime:3.2.3")
 
-    runtimeOnly("org.webjars:webjars-locator-lite:1.1.0")
+    runtimeOnly("org.webjars:webjars-locator-lite:1.1.3")
     runtimeOnly("org.webjars.npm:tailwindcss__browser:4.2.1")
 
     compileOnly("gg.jte:jte-kotlin:3.2.3")
