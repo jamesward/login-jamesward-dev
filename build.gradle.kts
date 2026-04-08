@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.3.10"
+    kotlin("jvm") version "2.3.20"
     kotlin("plugin.spring") version "2.3.20"
     kotlin("plugin.power-assert") version "2.3.20"
     id("org.springframework.boot") version "4.0.5"
@@ -20,36 +20,21 @@ jte {
 }
 
 dependencies {
+    runtimeOnly(kotlin("reflect"))
+
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server")
-    implementation("org.springaicommunity:mcp-authorization-server-spring-boot:0.1.5")
+    // need a way to customize the SecurityFilterChain
+//    implementation("org.springaicommunity:mcp-authorization-server-spring-boot:0.1.5")
+    implementation("org.springaicommunity:mcp-authorization-server:0.1.5")
+
     implementation("gg.jte:jte-spring-boot-starter-4:3.2.3")
     implementation("gg.jte:jte-runtime:3.2.3")
+    compileOnly("gg.jte:jte-kotlin:3.2.3")
+    jteGenerate("gg.jte:jte-models:3.2.3")
 
     runtimeOnly("org.webjars:webjars-locator-lite:1.1.3")
     runtimeOnly("org.webjars.npm:tailwindcss__browser:4.2.1")
 
-    compileOnly("gg.jte:jte-kotlin:3.2.3")
-
-    jteGenerate("gg.jte:jte-models:3.2.3")
-
-    runtimeOnly(kotlin("reflect"))
-
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-
     testRuntimeOnly("org.springframework.boot:spring-boot-devtools")
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
-
-    testLogging {
-        showStandardStreams = true
-        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-        events(org.gradle.api.tasks.testing.logging.TestLogEvent.STARTED, org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED, org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED, org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
-    }
-}
-
-tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootTestRun") {
-    systemProperty("spring.profiles.active", "testrun")
 }

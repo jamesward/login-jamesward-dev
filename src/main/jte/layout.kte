@@ -1,4 +1,4 @@
-@import com.example.Page
+@import com.jamesward.Page
 @import gg.jte.Content
 
 @param page: Page

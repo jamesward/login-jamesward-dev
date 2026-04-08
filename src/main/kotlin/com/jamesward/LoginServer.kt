@@ -129,8 +129,9 @@ class LoginServer {
         val james = userBuilder.username("james").build()
         val josh = userBuilder.username("josh").build()
         val rob = userBuilder.username("rob").build()
+        val demo = userBuilder.username("demo").build()
 
-        return InMemoryUserDetailsManager(james, josh, rob)
+        return InMemoryUserDetailsManager(james, josh, rob, demo)
     }
 
     @Bean
