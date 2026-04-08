@@ -22,7 +22,7 @@ jte {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server")
-    implementation("org.springaicommunity:mcp-authorization-server:0.1.2")
+    implementation("org.springaicommunity:mcp-authorization-server:0.1.5")
     implementation("gg.jte:jte-spring-boot-starter-4:3.2.3")
     implementation("gg.jte:jte-runtime:3.2.3")
 
