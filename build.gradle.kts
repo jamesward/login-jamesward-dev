@@ -26,7 +26,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server")
     // need a way to customize the SecurityFilterChain
 //    implementation("org.springaicommunity:mcp-authorization-server-spring-boot:0.1.5")
-    implementation("org.springaicommunity:mcp-authorization-server:0.1.5")
+    implementation("org.springaicommunity:mcp-authorization-server:0.1.6")
 
     implementation("gg.jte:jte-spring-boot-starter-4:3.2.3")
     implementation("gg.jte:jte-runtime:3.2.3")
