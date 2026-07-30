@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm") version "2.4.10"
     kotlin("plugin.spring") version "2.4.10"
-    kotlin("plugin.power-assert") version "2.3.20"
+    kotlin("plugin.power-assert") version "2.4.10"
     id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
     id("gg.jte.gradle") version("3.2.3")
