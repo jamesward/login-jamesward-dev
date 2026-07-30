@@ -20,9 +20,13 @@ import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.factory.PasswordEncoderFactories
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.security.oauth2.core.AuthorizationGrantType
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientRegistrationAuthenticationProvider
+import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository
 import org.springframework.security.oauth2.server.authorization.converter.OAuth2ClientRegistrationRegisteredClientConverter
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings
 import org.springframework.security.provisioning.InMemoryUserDetailsManager
@@ -99,6 +103,10 @@ class LoginServer {
         }
     }
 
+    val longLivedTokenSettings: TokenSettings = TokenSettings.builder()
+        .accessTokenTimeToLive(Duration.ofDays(365))
+        .build()
+
     val longerTTL: ObjectPostProcessor<OAuth2ClientRegistrationAuthenticationProvider> = object :
         ObjectPostProcessor<OAuth2ClientRegistrationAuthenticationProvider> {
         override fun <O : OAuth2ClientRegistrationAuthenticationProvider?> postProcess(
@@ -107,14 +115,33 @@ class LoginServer {
             if (objectToPostProcess is OAuth2ClientRegistrationAuthenticationProvider) {
                 objectToPostProcess.setRegisteredClientConverter { source ->
                     val registeredClient = OAuth2ClientRegistrationRegisteredClientConverter().convert(source)
-                    val tokenSettings = TokenSettings.builder()
-                        .accessTokenTimeToLive(Duration.ofDays(365))
-                        .build()
-                    RegisteredClient.from(registeredClient).tokenSettings(tokenSettings).build()
+                    RegisteredClient.from(registeredClient).tokenSettings(longLivedTokenSettings).build()
                 }
             }
             return objectToPostProcess
         }
+    }
+
+    // supports DCR-registered clients (via the delegate) and CIMD clients where the
+    // client_id is an HTTPS URL pointing at a client metadata document
+    @Bean
+    fun registeredClientRepository(
+        @Value($$"${cimd.allow-loopback:false}") allowLoopback: Boolean
+    ): RegisteredClientRepository {
+        val springClient = RegisteredClient.withId("spring")
+            .clientId("spring")
+            .clientSecret("{noop}spring")
+            .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+            .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+            .redirectUri("http://127.0.0.1:8081/login/oauth2/code/spring")
+            .redirectUri("http://localhost:8081/login/oauth2/code/spring")
+            .build()
+
+        return CimdRegisteredClientRepository(
+            InMemoryRegisteredClientRepository(springClient),
+            longLivedTokenSettings,
+            allowLoopback
+        )
     }
 
     @Bean
@@ -149,6 +176,12 @@ class LoginServer {
                 // gets the correct ordering for disabling consent
                 authServer.addObjectPostProcessor(noConsent)
                 authServer.addObjectPostProcessor(longerTTL)
+                // advertise CIMD support (draft-ietf-oauth-client-id-metadata-document)
+                authServer.authorizationServerMetadataEndpoint { metadata ->
+                    metadata.authorizationServerMetadataCustomizer { builder ->
+                        builder.claim("client_id_metadata_document_supported", true)
+                    }
+                }
                 // no matter what scopes the client asks for, we are ok with it
                 authServer.authorizationEndpoint { endpoint ->
                     endpoint.authenticationProviders { providers ->

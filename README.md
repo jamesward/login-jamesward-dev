@@ -9,6 +9,18 @@ It includes some production oriented aspects:
 - Custom UI with JTE & pre-compiled templates for login server
 - Virtual threads
 
+## Client Registration
+
+MCP clients can register two ways:
+- **Dynamic Client Registration (DCR)** - open registration via the standard registration endpoint
+- **Client ID Metadata Documents (CIMD)** - the `client_id` is an HTTPS URL pointing at a JSON
+  [client metadata document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/)
+  which is fetched and validated on demand (no registration needed). Support is advertised via
+  `client_id_metadata_document_supported` in the authorization server metadata.
+
+For local development / testing of CIMD with a metadata document served from localhost over plain http, set
+`cimd.allow-loopback=true`.
+
 ## Auth Server
 
 Run the auth server:
