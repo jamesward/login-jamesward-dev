@@ -7,6 +7,7 @@ import com.nimbusds.jose.jwk.source.JWKSource
 import com.nimbusds.jose.proc.SecurityContext
 import gg.jte.generated.precompiled.StaticTemplates
 import org.springaicommunity.mcp.security.authorizationserver.config.McpAuthorizationServerConfigurer.mcpAuthorizationServer
+import org.springaicommunity.mcp.security.common.url.DefaultUrlValidator
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -16,13 +17,21 @@ import org.springframework.http.MediaType
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.ObjectPostProcessor
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.DelegatingRegisteredClientRepository
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.client.metadata.ClientIdMetadataDocumentRegisteredClientRepository
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.client.metadata.ClientIdUrlValidator
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.client.metadata.DefaultClientMetadataValidator
 import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.factory.PasswordEncoderFactories
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.security.oauth2.core.AuthorizationGrantType
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientRegistrationAuthenticationProvider
+import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository
 import org.springframework.security.oauth2.server.authorization.converter.OAuth2ClientRegistrationRegisteredClientConverter
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings
 import org.springframework.security.provisioning.InMemoryUserDetailsManager
@@ -99,6 +108,10 @@ class LoginServer {
         }
     }
 
+    val longLivedTokenSettings: TokenSettings = TokenSettings.builder()
+        .accessTokenTimeToLive(Duration.ofDays(365))
+        .build()
+
     val longerTTL: ObjectPostProcessor<OAuth2ClientRegistrationAuthenticationProvider> = object :
         ObjectPostProcessor<OAuth2ClientRegistrationAuthenticationProvider> {
         override fun <O : OAuth2ClientRegistrationAuthenticationProvider?> postProcess(
@@ -107,14 +120,41 @@ class LoginServer {
             if (objectToPostProcess is OAuth2ClientRegistrationAuthenticationProvider) {
                 objectToPostProcess.setRegisteredClientConverter { source ->
                     val registeredClient = OAuth2ClientRegistrationRegisteredClientConverter().convert(source)
-                    val tokenSettings = TokenSettings.builder()
-                        .accessTokenTimeToLive(Duration.ofDays(365))
-                        .build()
-                    RegisteredClient.from(registeredClient).tokenSettings(tokenSettings).build()
+                    RegisteredClient.from(registeredClient).tokenSettings(longLivedTokenSettings).build()
                 }
             }
             return objectToPostProcess
         }
+    }
+
+    // resolves pre-registered & DCR clients from memory, and CIMD clients whose client_id
+    // is a URL pointing at a client metadata document
+    @Bean
+    fun registeredClientRepository(
+        @Value($$"${cimd.allow-loopback:false}") allowLoopback: Boolean
+    ): RegisteredClientRepository {
+        val springClient = RegisteredClient.withId("spring")
+            .clientId("spring")
+            .clientSecret("{noop}spring")
+            .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+            .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+            .redirectUri("http://127.0.0.1:8081/login/oauth2/code/spring")
+            .redirectUri("http://localhost:8081/login/oauth2/code/spring")
+            .build()
+
+        val inMemory = InMemoryRegisteredClientRepository(springClient)
+
+        val cimd = ClientIdMetadataDocumentRegisteredClientRepository().apply {
+            setClientIdUrlValidator(ClientIdUrlValidator(allowLoopback))
+            // native MCP clients redirect to loopback, so those redirect_uris are always allowed
+            setMetadataValidator(DefaultClientMetadataValidator(DefaultUrlValidator(true)))
+            setRegisteredClientConverter { source ->
+                val registeredClient = OAuth2ClientRegistrationRegisteredClientConverter().convert(source)
+                RegisteredClient.from(registeredClient).tokenSettings(longLivedTokenSettings).build()
+            }
+        }
+
+        return DelegatingRegisteredClientRepository(listOf(inMemory, cimd), inMemory)
     }
 
     @Bean
@@ -145,7 +185,7 @@ class LoginServer {
                 it.loginPage("/login")
                     .permitAll()
             }
-            .with(mcpAuthorizationServer().authorizationServer { authServer ->
+            .with(mcpAuthorizationServer().cimd(true).authorizationServer { authServer ->
                 // gets the correct ordering for disabling consent
                 authServer.addObjectPostProcessor(noConsent)
                 authServer.addObjectPostProcessor(longerTTL)

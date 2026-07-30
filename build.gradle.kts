@@ -36,5 +36,13 @@ dependencies {
     runtimeOnly("org.webjars:webjars-locator-lite:1.1.3")
     runtimeOnly("org.webjars.npm:tailwindcss__browser:4.2.1")
 
+    testImplementation(kotlin("test"))
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-webmvc-test")
+    testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.springframework.boot:spring-boot-devtools")
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
