@@ -28,7 +28,9 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.oauth2.core.AuthorizationGrantType
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientRegistrationAuthenticationContext
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientRegistrationAuthenticationProvider
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientRegistrationAuthenticationValidator
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository
@@ -48,6 +50,7 @@ import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.RSAPublicKeySpec
 import java.time.Duration
 import java.util.*
+import java.util.function.Consumer
 
 
 @SpringBootApplication
@@ -111,6 +114,14 @@ class LoginServer {
     val longLivedTokenSettings: TokenSettings = TokenSettings.builder()
         .accessTokenTimeToLive(Duration.ofDays(365))
         .build()
+
+    // Spring Security 7.1 rejects any scope at Dynamic Client Registration by default, but MCP
+    // clients register for scopes like mcp:tools. Keep the new redirect_uri & jwks_uri hardening
+    // and only restore the previous scope behavior.
+    val dcrValidator: Consumer<OAuth2ClientRegistrationAuthenticationContext> =
+        OAuth2ClientRegistrationAuthenticationValidator.DEFAULT_REDIRECT_URI_VALIDATOR
+            .andThen(OAuth2ClientRegistrationAuthenticationValidator.DEFAULT_JWK_SET_URI_VALIDATOR)
+            .andThen(OAuth2ClientRegistrationAuthenticationValidator.SIMPLE_SCOPE_VALIDATOR)
 
     val longerTTL: ObjectPostProcessor<OAuth2ClientRegistrationAuthenticationProvider> = object :
         ObjectPostProcessor<OAuth2ClientRegistrationAuthenticationProvider> {
@@ -185,7 +196,10 @@ class LoginServer {
                 it.loginPage("/login")
                     .permitAll()
             }
-            .with(mcpAuthorizationServer().cimd(true).authorizationServer { authServer ->
+            .with(mcpAuthorizationServer()
+                .cimd(true)
+                .dynamicClientRegistrationValidator(dcrValidator)
+                .authorizationServer { authServer ->
                 // gets the correct ordering for disabling consent
                 authServer.addObjectPostProcessor(noConsent)
                 authServer.addObjectPostProcessor(longerTTL)
