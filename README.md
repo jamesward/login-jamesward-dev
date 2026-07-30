@@ -18,6 +18,10 @@ MCP clients can register two ways:
   which is fetched and validated on demand (no registration needed). Support is advertised via
   `client_id_metadata_document_supported` in the authorization server metadata.
 
+Both are provided by `mcp-authorization-server`: `cimd(true)` on the configurer advertises support, and a
+`DelegatingRegisteredClientRepository` resolves clients from memory first (pre-registered & DCR), then falls
+back to `ClientIdMetadataDocumentRegisteredClientRepository` for URL client ids.
+
 For local development / testing of CIMD with a metadata document served from localhost over plain http, set
 `cimd.allow-loopback=true`.
 

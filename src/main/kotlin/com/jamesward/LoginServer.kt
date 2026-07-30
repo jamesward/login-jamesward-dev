@@ -7,6 +7,7 @@ import com.nimbusds.jose.jwk.source.JWKSource
 import com.nimbusds.jose.proc.SecurityContext
 import gg.jte.generated.precompiled.StaticTemplates
 import org.springaicommunity.mcp.security.authorizationserver.config.McpAuthorizationServerConfigurer.mcpAuthorizationServer
+import org.springaicommunity.mcp.security.common.url.DefaultUrlValidator
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -16,6 +17,10 @@ import org.springframework.http.MediaType
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.ObjectPostProcessor
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.DelegatingRegisteredClientRepository
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.client.metadata.ClientIdMetadataDocumentRegisteredClientRepository
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.client.metadata.ClientIdUrlValidator
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.client.metadata.DefaultClientMetadataValidator
 import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.factory.PasswordEncoderFactories
@@ -122,8 +127,8 @@ class LoginServer {
         }
     }
 
-    // supports DCR-registered clients (via the delegate) and CIMD clients where the
-    // client_id is an HTTPS URL pointing at a client metadata document
+    // resolves pre-registered & DCR clients from memory, and CIMD clients whose client_id
+    // is a URL pointing at a client metadata document
     @Bean
     fun registeredClientRepository(
         @Value($$"${cimd.allow-loopback:false}") allowLoopback: Boolean
@@ -137,11 +142,19 @@ class LoginServer {
             .redirectUri("http://localhost:8081/login/oauth2/code/spring")
             .build()
 
-        return CimdRegisteredClientRepository(
-            InMemoryRegisteredClientRepository(springClient),
-            longLivedTokenSettings,
-            allowLoopback
-        )
+        val inMemory = InMemoryRegisteredClientRepository(springClient)
+
+        val cimd = ClientIdMetadataDocumentRegisteredClientRepository().apply {
+            setClientIdUrlValidator(ClientIdUrlValidator(allowLoopback))
+            // native MCP clients redirect to loopback, so those redirect_uris are always allowed
+            setMetadataValidator(DefaultClientMetadataValidator(DefaultUrlValidator(true)))
+            setRegisteredClientConverter { source ->
+                val registeredClient = OAuth2ClientRegistrationRegisteredClientConverter().convert(source)
+                RegisteredClient.from(registeredClient).tokenSettings(longLivedTokenSettings).build()
+            }
+        }
+
+        return DelegatingRegisteredClientRepository(listOf(inMemory, cimd), inMemory)
     }
 
     @Bean
@@ -172,16 +185,10 @@ class LoginServer {
                 it.loginPage("/login")
                     .permitAll()
             }
-            .with(mcpAuthorizationServer().authorizationServer { authServer ->
+            .with(mcpAuthorizationServer().cimd(true).authorizationServer { authServer ->
                 // gets the correct ordering for disabling consent
                 authServer.addObjectPostProcessor(noConsent)
                 authServer.addObjectPostProcessor(longerTTL)
-                // advertise CIMD support (draft-ietf-oauth-client-id-metadata-document)
-                authServer.authorizationServerMetadataEndpoint { metadata ->
-                    metadata.authorizationServerMetadataCustomizer { builder ->
-                        builder.claim("client_id_metadata_document_supported", true)
-                    }
-                }
                 // no matter what scopes the client asks for, we are ok with it
                 authServer.authorizationEndpoint { endpoint ->
                     endpoint.authenticationProviders { providers ->

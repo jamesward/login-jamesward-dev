@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeAll
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.http.MediaType
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.client.metadata.InvalidClientMetadataException
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user
 import org.springframework.test.context.TestPropertySource
@@ -20,6 +22,7 @@ import java.net.InetSocketAddress
 import java.security.MessageDigest
 import java.util.*
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -38,6 +41,19 @@ class CimdFlowTest(@Autowired val mockMvc: MockMvc) {
         @BeforeAll
         fun startServer() {
             server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+            // a document claiming a different client_id than the URL it is served from
+            server.createContext("/mismatched.json") { exchange ->
+                val body = ObjectMapper().writeValueAsString(
+                    mapOf(
+                        "client_id" to "https://evil.example.com/client.json",
+                        "redirect_uris" to listOf(REDIRECT_URI),
+                    )
+                ).toByteArray()
+                exchange.responseHeaders.add("Content-Type", "application/json")
+                exchange.sendResponseHeaders(200, body.size.toLong())
+                exchange.responseBody.use { it.write(body) }
+                exchange.close()
+            }
             server.createContext("/client.json") { exchange ->
                 val body = ObjectMapper().writeValueAsString(
                     mapOf(
@@ -109,5 +125,47 @@ class CimdFlowTest(@Autowired val mockMvc: MockMvc) {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.access_token").exists())
             .andExpect(jsonPath("$.token_type").value("Bearer"))
+    }
+
+    @Test
+    fun `dynamic client registration still works alongside cimd`() {
+        mockMvc.perform(
+            post("/oauth2/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "client_name": "DCR Client",
+                      "redirect_uris": ["http://127.0.0.1:8081/callback"],
+                      "grant_types": ["authorization_code"],
+                      "token_endpoint_auth_method": "none"
+                    }
+                    """.trimIndent()
+                )
+                .with(csrf())
+        )
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.client_id").exists())
+    }
+
+    @Test
+    fun `rejects a metadata document whose client_id does not match its url`() {
+        val mismatchedClientId = "http://127.0.0.1:${server.address.port}/mismatched.json"
+
+        val authorizeUri = UriComponentsBuilder.fromPath("/oauth2/authorize")
+            .queryParam("response_type", "code")
+            .queryParam("client_id", "{clientId}")
+            .queryParam("redirect_uri", "{redirectUri}")
+            .queryParam("code_challenge", "5Tw5LcMoTZjIJmvJUyXwLQhcMOL5jNyEsK5PDgbNJnE")
+            .queryParam("code_challenge_method", "S256")
+            .buildAndExpand(mismatchedClientId, REDIRECT_URI)
+            .toUri()
+
+        // the repository rejects the document rather than resolving a client, so no code is issued
+        val exception = assertFailsWith<Exception> {
+            mockMvc.perform(get(authorizeUri).with(user("demo")))
+        }
+
+        assert(generateSequence<Throwable>(exception) { it.cause }.any { it is InvalidClientMetadataException })
     }
 }
