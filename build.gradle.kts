@@ -4,7 +4,7 @@ plugins {
     kotlin("plugin.power-assert") version "2.4.10"
     id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
-    id("gg.jte.gradle") version("3.2.3")
+    id("gg.jte.gradle") version("3.2.4")
 }
 
 kotlin {
@@ -28,10 +28,10 @@ dependencies {
 //    implementation("org.springaicommunity:mcp-authorization-server-spring-boot:0.1.5")
     implementation("org.springaicommunity:mcp-authorization-server:0.1.13")
 
-    implementation("gg.jte:jte-spring-boot-starter-4:3.2.3")
-    implementation("gg.jte:jte-runtime:3.2.3")
-    compileOnly("gg.jte:jte-kotlin:3.2.3")
-    jteGenerate("gg.jte:jte-models:3.2.3")
+    implementation("gg.jte:jte-spring-boot-starter-4:3.2.4")
+    implementation("gg.jte:jte-runtime:3.2.4")
+    compileOnly("gg.jte:jte-kotlin:3.2.4")
+    jteGenerate("gg.jte:jte-models:3.2.4")
 
     runtimeOnly("org.webjars:webjars-locator-lite:1.1.4")
     runtimeOnly("org.webjars.npm:tailwindcss__browser:4.2.1")
