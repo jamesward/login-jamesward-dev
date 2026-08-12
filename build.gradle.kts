@@ -34,7 +34,7 @@ dependencies {
     jteGenerate("gg.jte:jte-models:3.2.4")
 
     runtimeOnly("org.webjars:webjars-locator-lite:1.1.4")
-    runtimeOnly("org.webjars.npm:tailwindcss__browser:4.2.1")
+    runtimeOnly("org.webjars.npm:tailwindcss__browser:4.3.3")
 
     testImplementation(kotlin("test"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
