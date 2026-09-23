@@ -33,7 +33,7 @@ dependencies {
     compileOnly("gg.jte:jte-kotlin:3.2.4")
     jteGenerate("gg.jte:jte-models:3.2.4")
 
-    runtimeOnly("org.webjars:webjars-locator-lite:1.1.4")
+    runtimeOnly("org.webjars:webjars-locator-lite:1.1.5")
     runtimeOnly("org.webjars.npm:tailwindcss__browser:4.3.3")
 
     testImplementation(kotlin("test"))
