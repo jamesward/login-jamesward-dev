@@ -1,4 +1,5 @@
 plugins {
+    id("com.skillsjars.gradle-plugin") version "0.1.4"
     kotlin("jvm") version "2.4.20"
     kotlin("plugin.spring") version "2.4.20"
     kotlin("plugin.power-assert") version "2.4.20"
@@ -45,4 +46,13 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// Agent Skills, extracted with ./gradlew extractSkillsJars
+dependencies {
+    skill("com.jamesward:skills:0.0.10")
+}
+
+skillsjars {
+    outputDir.set(layout.projectDirectory.dir(".kiro/skills"))
 }
