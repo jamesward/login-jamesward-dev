@@ -3,7 +3,7 @@ plugins {
     kotlin("jvm") version "2.4.21"
     kotlin("plugin.spring") version "2.4.21"
     kotlin("plugin.power-assert") version "2.4.21"
-    id("org.springframework.boot") version "4.1.1"
+    id("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
     id("gg.jte.gradle") version("3.2.4")
 }
@@ -50,7 +50,7 @@ tasks.withType<Test> {
 
 // Agent Skills, extracted with ./gradlew extractSkillsJars
 dependencies {
-    skill("com.jamesward:skills:0.0.15")
+    skill("com.jamesward:skills:0.0.19")
 }
 
 skillsjars {
