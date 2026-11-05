@@ -5,7 +5,7 @@ plugins {
     kotlin("plugin.power-assert") version "2.4.21"
     id("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
-    id("gg.jte.gradle") version("3.2.4")
+    id("gg.jte.gradle") version("3.2.5")
 }
 
 kotlin {
@@ -29,13 +29,13 @@ dependencies {
 //    implementation("org.springaicommunity:mcp-authorization-server-spring-boot:0.1.5")
     implementation("org.springaicommunity:mcp-authorization-server:0.1.14")
 
-    implementation("gg.jte:jte-spring-boot-starter-4:3.2.4")
-    implementation("gg.jte:jte-runtime:3.2.4")
-    compileOnly("gg.jte:jte-kotlin:3.2.4")
-    jteGenerate("gg.jte:jte-models:3.2.4")
+    implementation("gg.jte:jte-spring-boot-starter-4:3.2.5")
+    implementation("gg.jte:jte-runtime:3.2.5")
+    compileOnly("gg.jte:jte-kotlin:3.2.5")
+    jteGenerate("gg.jte:jte-models:3.2.5")
 
     runtimeOnly("org.webjars:webjars-locator-lite:1.1.5")
-    runtimeOnly("org.webjars.npm:tailwindcss__browser:4.3.3")
+    runtimeOnly("org.webjars.npm:tailwindcss__browser:4.3.4")
 
     testImplementation(kotlin("test"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -50,7 +50,7 @@ tasks.withType<Test> {
 
 // Agent Skills, extracted with ./gradlew extractSkillsJars
 dependencies {
-    skill("com.jamesward:skills:0.0.19")
+    skill("com.jamesward:skills:0.0.22")
 }
 
 skillsjars {
