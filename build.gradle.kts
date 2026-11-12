@@ -50,7 +50,7 @@ tasks.withType<Test> {
 
 // Agent Skills, extracted with ./gradlew extractSkillsJars
 dependencies {
-    skill("com.jamesward:skills:0.0.22")
+    skill("com.jamesward:skills:0.0.26")
 }
 
 skillsjars {
